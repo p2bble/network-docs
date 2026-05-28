@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마커스빌딩 네트워크 토폴로지 & 서버 구성도</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --border-bright: #484f58;
+
+    --isp: #58a6ff;
+    --isp-bg: #0d2135;
+
+    --mdf: #3fb950;
+    --mdf-bg: #0d2018;
+
+    --floor7: #d2a8ff;
+    --floor7-bg: #1a1030;
+
+    --floor6: #79c0ff;
+    --floor6-bg: #0d1e30;
+
+    --floor5: #ffa657;
+    --floor5-bg: #221608;
+
+    --floor4: #56d364;
+    --floor4-bg: #0d1e0f;
+
+    --floor2: #e3b341;
+    --floor2-bg: #1c1400;
+
+    --floor1: #85e89d;
+    --floor1-bg: #0a1f10;
+
+    --server: #ff7b72;
+    --server-bg: #2d0f0e;
+
+    --cisco: #f0883e;
+    --ap: #58a6ff;
+    --fw: #ff7b72;
+    --sw: #3fb950;
+    --nas: #d2a8ff;
+
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Noto Sans KR', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.3;
+  }
+  header h1 span {
+    display: block;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Main Layout ── */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ISP Row */
+  .isp-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+
+  /* Connector lines */
+  .connector {
+    display: flex;
+    justify-content: center;
+    height: 28px;
+    position: relative;
+  }
+  .connector::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-bright);
+  }
+  .connector.fiber::before {
+    background: linear-gradient(to bottom, #f0883e, #58a6ff);
+    width: 3px;
+  }
+  .connector.double {
+    height: 20px;
+  }
+
+  /* Horizontal line spanning floors */
+  .h-connector {
+    height: 2px;
+    background: var(--border-bright);
+    flex: 1;
+  }
+
+  /* ── Card ── */
+  .card {
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 12px 14px;
+  }
+
+  .card-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .device-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin: 2px 2px 2px 0;
+    border: 1px solid;
+  }
+
+  /* ── ISP ── */
+  .isp-card {
+    background: var(--isp-bg);
+    border-color: var(--isp);
+    padding: 10px 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .isp-card .icon { font-size: 20px; }
+  .isp-card .name { font-size: 13px; font-weight: 600; color: var(--isp); }
+  .isp-card .sub { font-size: 11px; font-family: var(--mono); color: var(--text-muted); }
+
+  /* ── Floor wrapper ── */
+  .floors-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .floor-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    position: relative;
+  }
+
+  .floor-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    padding: 8px 0;
+  }
+
+  .floor-content {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .floor-divider {
+    height: 6px;
+    background: var(--bg);
+  }
+
+  /* ── Zone (MDF/TPS/Office/Server) ── */
+  .zone {
+    border-radius: 6px;
+    border: 1px solid;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .zone-title {
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding-bottom: 6px;
+    border-bottom: 1px solid;
+    margin-bottom: 2px;
+  }
+
+  .device-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .device-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-bottom: 2px;
+  }
+
+  /* Zone color themes */
+  .zone-mdf { border-color: #3fb95040; background: var(--mdf-bg); }
+  .zone-mdf .zone-title { color: var(--mdf); border-bottom-color: #3fb95030; }
+
+  .zone-tps { border-color: #8b949e30; background: #111620; }
+  .zone-tps .zone-title { color: #8b949e; border-bottom-color: #8b949e20; }
+
+  .zone-office { border-color: #58a6ff20; background: #0d1520; }
+  .zone-office .zone-title { color: var(--ap); border-bottom-color: #58a6ff20; }
+
+  .zone-server { border-color: #ff7b7230; background: var(--server-bg); }
+  .zone-server .zone-title { color: var(--server); border-bottom-color: #ff7b7220; }
+
+  .zone-server-shelf { border-color: #d2a8ff30; background: #1a0d2e; }
+  .zone-server-shelf .zone-title { color: var(--nas); border-bottom-color: #d2a8ff20; }
+
+  /* Device Tags */
+  .tag-fw    { color: var(--fw);    border-color: #ff7b7240; background: #ff7b7210; }
+  .tag-sw    { color: var(--sw);    border-color: #3fb95040; background: #3fb95010; }
+  .tag-sw-cisco { color: var(--cisco); border-color: #f0883e40; background: #f0883e10; }
+  .tag-ap    { color: var(--ap);    border-color: #58a6ff40; background: #58a6ff10; }
+  .tag-srv   { color: var(--server); border-color: #ff7b7240; background: #ff7b7210; }
+  .tag-nas   { color: var(--nas);   border-color: #d2a8ff40; background: #d2a8ff10; }
+  .tag-fiber { color: #f0883e;      border-color: #f0883e40; background: #f0883e10; }
+  .tag-ups   { color: #ffd700;      border-color: #ffd70040; background: #ffd70010; }
+  .tag-misc  { color: var(--text-muted); border-color: #8b949e30; background: #8b949e10; }
+
+  /* ── IP badge ── */
+  .ip-badge {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: #58a6ff;
+    background: #0d2135;
+    border: 1px solid #58a6ff30;
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  /* ── Topology section ── */
+  .topology-header {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 28px 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topology-header::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background: var(--isp);
+    border-radius: 2px;
+  }
+
+  /* ── Topology SVG wrapper ── */
+  .topo-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+
+  /* ── Floor colors for label ── */
+  .fl7 { color: var(--floor7); background: var(--floor7-bg) !important; border-color: #d2a8ff30 !important; }
+  .fl6 { color: var(--floor6); background: var(--floor6-bg) !important; border-color: #79c0ff30 !important; }
+  .fl5 { color: var(--floor5); background: var(--floor5-bg) !important; border-color: #ffa65730 !important; }
+  .fl4 { color: var(--floor4); background: var(--floor4-bg) !important; border-color: #56d36430 !important; }
+
+  .fl7c { border-color: #d2a8ff30 !important; background: var(--floor7-bg) !important; }
+  .fl6c { border-color: #79c0ff30 !important; background: var(--floor6-bg) !important; }
+  .fl5c { border-color: #ffa65730 !important; background: var(--floor5-bg) !important; }
+  .fl4c { border-color: #56d36430 !important; background: var(--floor4-bg) !important; }
+
+  .fl2 { color: var(--floor2); background: var(--floor2-bg) !important; border-color: #e3b34130 !important; }
+  .fl1 { color: var(--floor1); background: var(--floor1-bg) !important; border-color: #85e89d30 !important; }
+
+  .fl2c { border-color: #e3b34130 !important; background: var(--floor2-bg) !important; }
+  .fl1c { border-color: #85e89d30 !important; background: var(--floor1-bg) !important; }
+
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #30363d;
+    color: var(--text-muted);
+    border-radius: 10px;
+    font-size: 10px;
+    font-family: var(--mono);
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+
+  /* ── Global layout ── */
+  html { scroll-behavior: smooth; }
+  body { padding-left: 56px; }
+
+  /* ── Sidebar Nav ── */
+  .sidebar-nav {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 5px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    z-index: 100;
+    box-shadow: 3px 0 14px #00000070;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 26px;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    cursor: pointer;
+  }
+  .nav-btn:hover { background: var(--surface2); border-color: var(--border-bright); }
+  .nav-sep { height: 1px; background: var(--border); margin: 2px 0; }
+
+  /* ── Quick Stats Bar ── */
+  .stats-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .stat-card .s-icon { font-size: 20px; line-height: 1; }
+  .stat-card .s-num  { font-size: 20px; font-weight: 700; font-family: var(--mono); line-height: 1.1; }
+  .stat-card .s-lbl  { font-size: 9px; color: var(--text-muted); font-family: var(--mono); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
+  .stat-sep { width: 1px; background: var(--border); align-self: stretch; flex-shrink: 0; margin: 0 4px; }
+
+  /* ── 2-column floor pair ── */
+  .floor-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    align-items: start;
+  }
+
+  /* ── Collapsible server zones ── */
+  details.zone-server,
+  details.zone-server-shelf {
+    display: block;
+    border-radius: 6px;
+    border: 1px solid;
+  }
+  details.zone-server       { border-color: #ff7b7230; background: var(--server-bg); }
+  details.zone-server-shelf { border-color: #d2a8ff30; background: #1a0d2e; }
+
+  details.zone-server > summary,
+  details.zone-server-shelf > summary {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    list-style: none;
+    user-select: none;
+    margin-bottom: 0;
+  }
+  details.zone-server > summary::-webkit-details-marker,
+  details.zone-server-shelf > summary::-webkit-details-marker { display: none; }
+
+  details.zone-server       > summary { color: var(--server); }
+  details.zone-server-shelf > summary { color: var(--nas); }
+  details.zone-server[open]       > summary { border-bottom: 1px solid #ff7b7220; padding-bottom: 10px; }
+  details.zone-server-shelf[open] > summary { border-bottom: 1px solid #d2a8ff20; padding-bottom: 10px; }
+
+  .toggle-hint {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0.45;
+  }
+  .toggle-hint::before { content: '▾ 접기'; }
+  details:not([open]) .toggle-hint::before { content: '▸ 펼치기'; }
+
+  .detail-body {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar-nav">
+  <a href="#f7" class="nav-btn" style="color:var(--floor7)">7F</a>
+  <a href="#f6" class="nav-btn" style="color:var(--floor6)">6F</a>
+  <a href="#f5" class="nav-btn" style="color:var(--floor5)">5F</a>
+  <a href="#f4" class="nav-btn" style="color:var(--floor4)">4F</a>
+  <a href="#f2" class="nav-btn" style="color:var(--floor2)">2F</a>
+  <a href="#f1" class="nav-btn" style="color:var(--floor1)">1F</a>
+  <div class="nav-sep"></div>
+  <a href="#topo" class="nav-btn" style="color:var(--text-muted);font-size:9px;letter-spacing:0">SVG</a>
+</nav>
+
+<header>
+  <h1>마커스빌딩 네트워크 & 서버 구성도
+    <span>MARCUS BUILDING · NETWORK TOPOLOGY & SERVER CONFIGURATION</span>
+  </h1>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff7b72"></div>방화벽/UTM</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>스위치(Fortinet)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>스위치(Cisco)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>AP / ISP</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff7b72;opacity:.7"></div>서버</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>NAS / 기타</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f0883e;opacity:.6"></div>광 단자 / UPS</div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-card" style="border-left:3px solid #ff7b72">
+    <div class="s-icon">🛡</div>
+    <div><div class="s-num" style="color:#ff7b72">2</div><div class="s-lbl">UTM FG-120G</div></div>
+  </div>
+  <div class="stat-card" style="border-left:3px solid #3fb950">
+    <div class="s-icon">⚡</div>
+    <div><div class="s-num" style="color:#3fb950">15</div><div class="s-lbl">Fortinet SW</div></div>
+  </div>
+  <div class="stat-card" style="border-left:3px solid #f0883e">
+    <div class="s-icon">🔌</div>
+    <div><div class="s-num" style="color:#f0883e">4</div><div class="s-lbl">Cisco SW</div></div>
+  </div>
+  <div class="stat-card" style="border-left:3px solid #58a6ff">
+    <div class="s-icon">📡</div>
+    <div><div class="s-num" style="color:#58a6ff">16</div><div class="s-lbl">AP FAP231K</div></div>
+  </div>
+  <div class="stat-card" style="border-left:3px solid #ff7b7260">
+    <div class="s-icon">🖥</div>
+    <div><div class="s-num" style="color:#ff7b72">14+</div><div class="s-lbl">서버</div></div>
+  </div>
+  <div class="stat-sep"></div>
+  <div class="stat-card" style="border-left:3px solid #58a6ff30">
+    <div><div class="s-num" style="color:#58a6ff;font-size:13px;">172.18.100.x</div><div class="s-lbl">INT 대역</div></div>
+  </div>
+  <div class="stat-card" style="border-left:3px solid #58a6ff30">
+    <div><div class="s-num" style="color:#58a6ff;font-size:13px;">172.19.100.x</div><div class="s-lbl">DMZ 대역</div></div>
+  </div>
+</div>
+
+<div class="diagram">
+
+  <!-- ISP -->
+  <div class="isp-row">
+    <div class="isp-card">
+      <div class="icon">🌐</div>
+      <div>
+        <div class="name">KT 기가오피스 인터넷</div>
+        <div class="sub">ISP · Fiber Optic</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector fiber"></div>
+
+  <!-- 7F MDF -->
+  <div class="floor-row" id="f7">
+    <div class="floor-label fl7">7F</div>
+    <div class="floor-content fl7c">
+
+      <!-- MDF실 -->
+      <div class="zone zone-mdf" style="flex:1.2">
+        <div class="zone-title">🏢 MDF실 (Rack)</div>
+        <div class="device-row">
+          <span class="device-tag tag-fiber">🔌 광 단자</span>
+        </div>
+        <div class="device-row">
+          <span class="device-tag tag-fw">🛡 UTM FG-120G</span>
+          <span class="device-tag tag-fw">🛡 UTM FG-120G</span>
+          <span class="count-badge">×2</span>
+        </div>
+        <div class="device-row">
+          <span class="device-tag tag-sw">⚡ Main SW FS-424E FIBER</span>
+        </div>
+      </div>
+
+      <!-- 7F TPS실 -->
+      <div class="zone zone-tps" style="flex:1">
+        <div class="zone-title">🔧 TPS실 (Rack)</div>
+        <div class="device-row">
+          <span class="device-tag tag-sw">SW FS-148F</span>
+          <span class="device-tag tag-sw">SW FS-108F-PoE</span>
+        </div>
+      </div>
+
+      <!-- 7F 사무실 -->
+      <div class="zone zone-office" style="flex:1">
+        <div class="zone-title">📶 7층 사무실</div>
+        <div class="device-row">
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="count-badge">AP ×2</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="floor-divider"></div>
+
+  <!-- 6F -->
+  <div class="floor-row" id="f6">
+    <div class="floor-label fl6">6F</div>
+    <div class="floor-content fl6c">
+
+      <div class="zone zone-tps" style="flex:1">
+        <div class="zone-title">🔧 TPS실 (Rack)</div>
+        <div class="device-row">
+          <span class="device-tag tag-sw">SW FS-148F</span>
+          <span class="device-tag tag-sw">SW FS-108F-PoE</span>
+        </div>
+      </div>
+
+      <div class="zone zone-office" style="flex:1.5">
+        <div class="zone-title">📶 6층 사무실</div>
+        <div class="device-row">
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="count-badge">AP ×3</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="floor-divider"></div>
+
+  <!-- 5F — 가장 복잡한 층 -->
+  <div class="floor-row" id="f5">
+    <div class="floor-label fl5">5F</div>
+    <div class="floor-content fl5c" style="flex-wrap:wrap; gap:10px;">
+
+      <!-- 5F TPS실 -->
+      <div class="zone zone-tps" style="flex:1; min-width:200px;">
+        <div class="zone-title">🔧 TPS실 (Rack)</div>
+        <div class="device-row">
+          <span class="device-tag tag-sw">FS-148F</span>
+          <span class="device-tag tag-sw">FS-124F</span>
+          <span class="device-tag tag-sw">FS-108F-PoE</span>
+        </div>
+      </div>
+
+      <!-- 5F 사무실 -->
+      <div class="zone zone-office" style="flex:1; min-width:160px;">
+        <div class="zone-title">📶 5층 사무실</div>
+        <div class="device-row">
+          <span class="device-tag tag-ap">📡 FAP231K ×3</span>
+        </div>
+      </div>
+
+      <!-- 5F 서버실 메인 Rack -->
+      <details class="zone zone-server" style="flex:2; min-width:280px;" open>
+        <summary>🖥 서버실 · 메인 Rack (최좌측)<span class="toggle-hint"></span></summary>
+        <div class="detail-body">
+          <div class="device-label">▸ 광 단자</div>
+          <div class="device-row">
+            <span class="device-tag tag-fiber">🔌 광 단자</span>
+          </div>
+          <div class="device-label">▸ Cisco Catalyst 9200L 48포트</div>
+          <div class="device-row">
+            <span class="device-tag tag-sw-cisco">Catalyst 9200L INT</span>
+            <span class="ip-badge">172.18.100.x</span>
+          </div>
+          <div class="device-row">
+            <span class="device-tag tag-sw-cisco">Catalyst 9200L DMZ</span>
+            <span class="ip-badge">172.19.100.x</span>
+          </div>
+          <div class="device-label">▸ 서버 (Supermicro / Dell)</div>
+          <div class="device-row">
+            <span class="device-tag tag-srv">Supermicro 815-5</span>
+            <span class="count-badge">×3</span>
+            <span class="device-tag tag-srv">Dell H91Z3N3</span>
+          </div>
+        </div>
+      </details>
+
+      <!-- 5F 서버실 하프 Rack -->
+      <details class="zone zone-server" style="flex:2; min-width:260px;" open>
+        <summary>🖥 서버실 · 하프 Rack (중앙)<span class="toggle-hint"></span></summary>
+        <div class="detail-body">
+          <div class="device-row">
+            <span class="device-tag tag-srv">VM-Srv Dell R750xs</span>
+            <span class="device-tag tag-srv">VM-Srv02 Dell R750xs</span>
+          </div>
+          <div class="device-row">
+            <span class="device-tag tag-srv">ERP-Srv Dell R740</span>
+            <span class="device-tag tag-srv">GPU-Srv Dell R740</span>
+          </div>
+          <div class="device-row">
+            <span class="device-tag tag-srv">PDKCLD1 Dell R740</span>
+            <span class="device-tag tag-srv">lab-srv Dell 7960</span>
+          </div>
+          <div class="device-row">
+            <span class="device-tag tag-ups">⚡ APC 3000 UPS</span>
+          </div>
+        </div>
+      </details>
+
+      <!-- 5F 서버실 우측 선반 -->
+      <details class="zone zone-server-shelf" style="flex:2; min-width:260px;" open>
+        <summary>📦 서버실 · 우측 선반 (4단)<span class="toggle-hint"></span></summary>
+        <div class="detail-body">
+          <div class="device-label">▸ 최상단</div>
+          <div class="device-row">
+            <span class="device-tag tag-misc">미니PC ×2</span>
+            <span class="device-tag tag-nas">NAS ×1</span>
+          </div>
+          <div class="device-label">▸ 3단 (Cisco 스위치)</div>
+          <div class="device-row">
+            <span class="device-tag tag-sw-cisco">Cisco Business 220 INT</span>
+            <span class="ip-badge">172.18.100.x</span>
+          </div>
+          <div class="device-row">
+            <span class="device-tag tag-sw-cisco">Cisco Business 220 DMZ</span>
+            <span class="ip-badge">172.19.100.x</span>
+          </div>
+          <div class="device-label">▸ 2단</div>
+          <div class="device-row">
+            <span class="device-tag tag-misc">모니터</span>
+          </div>
+          <div class="device-label">▸ 1단 (최하단)</div>
+          <div class="device-row">
+            <span class="device-tag tag-srv">Gitlab-Srv T340</span>
+            <span class="device-tag tag-srv">Dell Precision 7920 ×2</span>
+          </div>
+          <div class="device-row">
+            <span class="device-tag tag-srv">AI-Srv 2495X GPU</span>
+            <span class="device-tag tag-misc">삼성엔지니어링PRD PC</span>
+          </div>
+        </div>
+      </details>
+
+    </div>
+  </div>
+
+  <div class="floor-divider"></div>
+
+  <!-- 4F -->
+  <div class="floor-row" id="f4">
+    <div class="floor-label fl4">4F</div>
+    <div class="floor-content fl4c">
+
+      <div class="zone zone-tps" style="flex:1">
+        <div class="zone-title">🔧 TPS실 (Rack)</div>
+        <div class="device-row">
+          <span class="device-tag tag-sw">FS-148F</span>
+          <span class="device-tag tag-sw">FS-124F</span>
+          <span class="device-tag tag-sw">FS-108F-PoE</span>
+        </div>
+      </div>
+
+      <div class="zone zone-office" style="flex:1.5">
+        <div class="zone-title">📶 4층 사무실</div>
+        <div class="device-row">
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="count-badge">AP ×3</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="floor-divider"></div>
+
+  <!-- 2F — TPS 렉 없음, 1F TPS 통합 관리 -->
+  <div class="floor-row" id="f2">
+    <div class="floor-label fl2">2F</div>
+    <div class="floor-content fl2c">
+
+      <div class="zone zone-tps" style="flex:1; border-style:dashed; opacity:0.65;">
+        <div class="zone-title">🔧 TPS실 (렉 없음)</div>
+        <div class="device-row">
+          <span class="device-tag tag-misc">장비 없음</span>
+        </div>
+        <div class="device-label" style="margin-top:4px; font-size:9px;">※ 1F TPS실에서 케이블 포설 및 통합 관리</div>
+      </div>
+
+      <div class="zone zone-office" style="flex:1.5">
+        <div class="zone-title">📶 2층 사무실</div>
+        <div class="device-row">
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="count-badge">AP ×3</span>
+        </div>
+        <div class="device-label" style="font-size:9px;">S/N: FGMZ · FDWV · FHMR</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 1F — TPS에 1F+2F 스위치 4대 통합 -->
+  <div class="floor-row" id="f1">
+    <div class="floor-label fl1">1F</div>
+    <div class="floor-content fl1c">
+
+      <div class="zone zone-tps" style="flex:1.5">
+        <div class="zone-title">🔧 TPS실 (Rack) · 1F+2F 통합 관리</div>
+        <div class="device-label">▸ 2F용 스위치 (2F TPS 렉 없음 → 1F 수용)</div>
+        <div class="device-row">
+          <span class="device-tag tag-sw" style="border-color:#e3b34160; color:#e3b341;">⚡ FS-148F</span>
+          <span class="device-tag tag-sw" style="border-color:#e3b34160; color:#e3b341;">⚡ FS-108F-PoE</span>
+          <span class="count-badge">2F용</span>
+        </div>
+        <div class="device-label">▸ 1F용 스위치</div>
+        <div class="device-row">
+          <span class="device-tag tag-sw">⚡ FS-148F</span>
+          <span class="device-tag tag-sw">⚡ FS-108F-PoE</span>
+          <span class="count-badge">1F용</span>
+        </div>
+        <div class="device-label" style="font-size:9px; margin-top:2px;">총 4대 · 1F TPS에서 케이블 포설</div>
+      </div>
+
+      <div class="zone zone-office" style="flex:1">
+        <div class="zone-title">📶 1층 사무실</div>
+        <div class="device-row">
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="device-tag tag-ap">📡 FAP231K</span>
+          <span class="count-badge">AP ×2</span>
+        </div>
+        <div class="device-label" style="font-size:9px;">S/N: FHP7 · FDV7</div>
+      </div>
+
+    </div>
+  </div>
+
+
+</div>
+
+<!-- ── Topology SVG ── -->
+<div id="topo" class="topology-header">네트워크 토폴로지 다이어그램</div>
+
+<div class="topo-wrap">
+<svg viewBox="0 0 1100 850" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:1380px; min-width:900px; display:block; margin:0 auto;">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#484f58"/>
+    </marker>
+    <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f0883e"/>
+    </marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+    </marker>
+    <filter id="glow-green">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background grid -->
+  <rect width="1100" height="850" fill="#161b22" rx="8"/>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="0.5"/>
+  </pattern>
+  <rect width="1100" height="850" fill="url(#grid)"/>
+
+  <!-- Floor bands -->
+  <rect x="12" y="115" width="1076" height="82" rx="5" fill="#1a1030" fill-opacity="0.5" stroke="#d2a8ff" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="12" y="205" width="1076" height="82" rx="5" fill="#0d1e30" fill-opacity="0.5" stroke="#79c0ff" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="12" y="295" width="1076" height="230" rx="5" fill="#221608" fill-opacity="0.5" stroke="#ffa657" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="12" y="533" width="1076" height="82" rx="5" fill="#0d1e0f" fill-opacity="0.5" stroke="#56d364" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="12" y="623" width="1076" height="80" rx="5" fill="#1c1400" fill-opacity="0.5" stroke="#e3b341" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="12" y="711" width="1076" height="120" rx="5" fill="#0a1f10" fill-opacity="0.5" stroke="#85e89d" stroke-width="0.5" stroke-opacity="0.3"/>
+
+  <!-- Floor labels on left -->
+  <text x="24" y="162" fill="#d2a8ff" font-size="14" font-weight="700">7F</text>
+  <text x="24" y="252" fill="#79c0ff" font-size="14" font-weight="700">6F</text>
+  <text x="24" y="402" fill="#ffa657" font-size="14" font-weight="700">5F</text>
+  <text x="24" y="580" fill="#56d364" font-size="14" font-weight="700">4F</text>
+  <text x="24" y="670" fill="#e3b341" font-size="14" font-weight="700">2F</text>
+  <text x="24" y="778" fill="#85e89d" font-size="14" font-weight="700">1F</text>
+
+  <!-- ── ISP ── -->
+  <rect x="440" y="14" width="220" height="44" rx="6" fill="#0d2135" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="550" y="32" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">🌐 KT 기가오피스</text>
+  <text x="550" y="48" fill="#8b949e" font-size="10" text-anchor="middle">ISP · Fiber Optic</text>
+
+  <!-- ISP → UTM (fiber line) -->
+  <line x1="550" y1="58" x2="550" y2="100" stroke="#f0883e" stroke-width="2.5" stroke-dasharray="6,3" marker-end="url(#arr-orange)"/>
+  <text x="556" y="82" fill="#f0883e" font-size="10">광케이블</text>
+
+  <!-- ── 7F MDF ── -->
+  <!-- 광단자 -->
+  <rect x="380" y="100" width="80" height="34" rx="5" fill="#f0883e18" stroke="#f0883e" stroke-width="1"/>
+  <text x="420" y="113" fill="#f0883e" font-size="11" font-weight="600" text-anchor="middle">광 단자</text>
+  <text x="420" y="126" fill="#8b949e" font-size="9" text-anchor="middle">MDF 7F</text>
+
+  <!-- UTM x2 -->
+  <rect x="480" y="100" width="90" height="34" rx="5" fill="#ff7b7218" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="525" y="113" fill="#ff7b72" font-size="11" font-weight="600" text-anchor="middle">UTM FG-120G</text>
+  <text x="525" y="126" fill="#8b949e" font-size="9" text-anchor="middle">×2 Active/Standby</text>
+
+  <rect x="588" y="100" width="90" height="34" rx="5" fill="#ff7b7218" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="633" y="113" fill="#ff7b72" font-size="11" font-weight="600" text-anchor="middle">UTM FG-120G</text>
+  <text x="633" y="126" fill="#8b949e" font-size="9" text-anchor="middle">Secondary</text>
+
+  <!-- Main SW -->
+  <rect x="460" y="140" width="160" height="34" rx="5" fill="#3fb95018" stroke="#3fb950" stroke-width="1.5" filter="url(#glow-green)"/>
+  <text x="540" y="153" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Main SW · FS-424E FIBER</text>
+  <text x="540" y="166" fill="#8b949e" font-size="9" text-anchor="middle">7F MDF실</text>
+
+  <!-- Lines: 광단자→UTM, UTM→MainSW -->
+  <line x1="460" y1="117" x2="480" y2="117" stroke="#f0883e" stroke-width="1.5"/>
+  <line x1="525" y1="134" x2="525" y2="140" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-green)"/>
+  <line x1="633" y1="134" x2="580" y2="150" stroke="#3fb950" stroke-width="1" stroke-dasharray="4,2"/>
+
+  <!-- ── 7F TPS SW → 7F AP ── -->
+  <!-- 7F TPS Rack -->
+  <rect x="160" y="124" width="130" height="52" rx="5" fill="#111620" stroke="#30363d" stroke-width="1"/>
+  <text x="225" y="138" fill="#8b949e" font-size="11" font-weight="600" text-anchor="middle">7F TPS실</text>
+  <rect x="168" y="143" width="55" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="195" y="156" fill="#3fb950" font-size="10" text-anchor="middle">FS-148F</text>
+  <rect x="228" y="143" width="55" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="255" y="156" fill="#3fb950" font-size="10" text-anchor="middle">FS-108F-PoE</text>
+
+  <!-- MainSW → 7F TPS -->
+  <line x1="460" y1="157" x2="290" y2="157" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+  <!-- 7F AP -->
+  <rect x="50" y="124" width="100" height="52" rx="5" fill="#0d152018" stroke="#58a6ff" stroke-width="1"/>
+  <text x="100" y="138" fill="#79c0ff" font-size="11" font-weight="600" text-anchor="middle">7F 사무실</text>
+  <rect x="58" y="143" width="84" height="20" rx="3" fill="#58a6ff15" stroke="#58a6ff" stroke-width="0.8"/>
+  <text x="100" y="156" fill="#58a6ff" font-size="10" text-anchor="middle">📡 FAP231K ×2</text>
+
+  <line x1="160" y1="155" x2="142" y2="155" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+  <!-- ── 6F ── -->
+  <!-- Main SW → 6F TPS -->
+  <line x1="500" y1="174" x2="500" y2="198" stroke="#3fb950" stroke-width="1.2"/>
+  <line x1="500" y1="198" x2="290" y2="247" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-green)"/>
+
+  <rect x="160" y="214" width="130" height="52" rx="5" fill="#111620" stroke="#30363d" stroke-width="1"/>
+  <text x="225" y="228" fill="#8b949e" font-size="11" font-weight="600" text-anchor="middle">6F TPS실</text>
+  <rect x="168" y="233" width="55" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="195" y="246" fill="#3fb950" font-size="10" text-anchor="middle">FS-148F</text>
+  <rect x="228" y="233" width="55" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="255" y="246" fill="#3fb950" font-size="10" text-anchor="middle">FS-108F-PoE</text>
+
+  <rect x="50" y="214" width="100" height="52" rx="5" fill="#0d152018" stroke="#58a6ff" stroke-width="1"/>
+  <text x="100" y="228" fill="#79c0ff" font-size="11" font-weight="600" text-anchor="middle">6F 사무실</text>
+  <rect x="58" y="233" width="84" height="20" rx="3" fill="#58a6ff15" stroke="#58a6ff" stroke-width="0.8"/>
+  <text x="100" y="246" fill="#58a6ff" font-size="10" text-anchor="middle">📡 FAP231K ×3</text>
+
+  <line x1="160" y1="245" x2="142" y2="245" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+  <!-- ── 5F Office/TPS ── -->
+  <line x1="500" y1="174" x2="500" y2="288" stroke="#3fb950" stroke-width="1.2"/>
+  <line x1="500" y1="288" x2="290" y2="330" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-green)"/>
+
+  <rect x="160" y="305" width="130" height="58" rx="5" fill="#111620" stroke="#30363d" stroke-width="1"/>
+  <text x="225" y="319" fill="#8b949e" font-size="11" font-weight="600" text-anchor="middle">5F TPS실</text>
+  <rect x="168" y="325" width="38" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="187" y="338" fill="#3fb950" font-size="9" text-anchor="middle">FS-148F</text>
+  <rect x="210" y="325" width="38" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="229" y="338" fill="#3fb950" font-size="9" text-anchor="middle">FS-124F</text>
+  <rect x="252" y="325" width="32" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="268" y="337" fill="#3fb950" font-size="8.5" text-anchor="middle">FS-108F</text>
+  <text x="268" y="347" fill="#3fb950" font-size="8.5" text-anchor="middle">PoE</text>
+
+  <rect x="50" y="305" width="100" height="58" rx="5" fill="#0d152018" stroke="#58a6ff" stroke-width="1"/>
+  <text x="100" y="319" fill="#79c0ff" font-size="11" font-weight="600" text-anchor="middle">5F 사무실</text>
+  <rect x="58" y="325" width="84" height="25" rx="3" fill="#58a6ff15" stroke="#58a6ff" stroke-width="0.8"/>
+  <text x="100" y="341" fill="#58a6ff" font-size="10" text-anchor="middle">📡 FAP231K ×3</text>
+
+  <line x1="160" y1="334" x2="142" y2="334" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+  <!-- ── 5F Server Room (재설계) ── -->
+  <!-- Fiber 광케이블 from UTM to server room -->
+  <line x1="580" y1="174" x2="580" y2="349" stroke="#f0883e" stroke-width="2" stroke-dasharray="6,3"/>
+  <line x1="580" y1="349" x2="594" y2="349" stroke="#f0883e" stroke-width="1.8" marker-end="url(#arr-orange)"/>
+  <text x="584" y="266" fill="#f0883e" font-size="8" fill-opacity="0.7">광케이블</text>
+
+  <!-- Server room outer boundary -->
+  <rect x="580" y="300" width="498" height="220" rx="6" fill="#120806" fill-opacity="0.45" stroke="#ffa657" stroke-width="0.6" stroke-opacity="0.35"/>
+  <text x="829" y="313" fill="#ffa657" font-size="11" font-weight="700" text-anchor="middle">5F 서버실</text>
+
+  <!-- ① 메인 Rack (좌좌측) -->
+  <rect x="588" y="318" width="155" height="194" rx="4" fill="#0e0c10" stroke="#f0883e" stroke-width="1" stroke-opacity="0.75"/>
+  <text x="665" y="330" fill="#f0883e" font-size="9" font-weight="600" text-anchor="middle">메인 Rack (좌좌측)</text>
+  <line x1="588" y1="334" x2="743" y2="334" stroke="#f0883e" stroke-width="0.4" stroke-opacity="0.3"/>
+  <rect x="594" y="338" width="143" height="18" rx="3" fill="#f0883e18" stroke="#f0883e" stroke-width="0.8"/>
+  <text x="665" y="350" fill="#f0883e" font-size="9" text-anchor="middle">🔌 광 단자 (STIA FDF)</text>
+  <rect x="594" y="359" width="143" height="18" rx="3" fill="#f0883e10" stroke="#f0883e" stroke-width="0.8"/>
+  <text x="665" y="371" fill="#f0883e" font-size="8.5" text-anchor="middle">Cisco 9200L · INT · 172.18.100.x</text>
+  <rect x="594" y="380" width="143" height="18" rx="3" fill="#f0883e10" stroke="#f0883e" stroke-width="0.8"/>
+  <text x="665" y="392" fill="#f0883e" font-size="8.5" text-anchor="middle">Cisco 9200L · DMZ · 172.19.100.x</text>
+  <rect x="594" y="401" width="143" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="665" y="413" fill="#ff7b72" font-size="9" text-anchor="middle">Supermicro 815-5 ×4</text>
+  <rect x="594" y="422" width="143" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="665" y="434" fill="#ff7b72" font-size="9" text-anchor="middle">Dell H91Z3N3</text>
+
+  <!-- 메인 Rack → 하프 Rack 연결 -->
+  <line x1="743" y1="413" x2="753" y2="413" stroke="#484f58" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+
+  <!-- ② 하프 Rack (중앙) -->
+  <rect x="753" y="318" width="160" height="194" rx="4" fill="#0e0c10" stroke="#ff7b72" stroke-width="1" stroke-opacity="0.75"/>
+  <text x="833" y="330" fill="#ff7b72" font-size="9" font-weight="600" text-anchor="middle">하프 Rack (중앙)</text>
+  <line x1="753" y1="334" x2="913" y2="334" stroke="#ff7b72" stroke-width="0.4" stroke-opacity="0.3"/>
+  <rect x="759" y="338" width="148" height="18" rx="3" fill="#8b949e15" stroke="#8b949e" stroke-width="0.7"/>
+  <text x="833" y="350" fill="#8b949e" font-size="9" text-anchor="middle">KVM 스위치 (RARITAN)</text>
+  <rect x="759" y="359" width="72" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="795" y="371" fill="#ff7b72" font-size="8.5" text-anchor="middle">VM-Srv R750xs</text>
+  <rect x="835" y="359" width="72" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="871" y="371" fill="#ff7b72" font-size="8.5" text-anchor="middle">VM-Srv02 R750xs</text>
+  <rect x="759" y="380" width="72" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="795" y="392" fill="#ff7b72" font-size="8.5" text-anchor="middle">ERP-Srv R740</text>
+  <rect x="835" y="380" width="72" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="871" y="392" fill="#ff7b72" font-size="8.5" text-anchor="middle">GPU-Srv R740</text>
+  <rect x="759" y="401" width="72" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="795" y="413" fill="#ff7b72" font-size="8.5" text-anchor="middle">PDKCLD1 R740</text>
+  <rect x="835" y="401" width="72" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="871" y="413" fill="#ff7b72" font-size="8.5" text-anchor="middle">lab-srv 7960</text>
+  <rect x="759" y="422" width="148" height="18" rx="3" fill="#ffd70015" stroke="#ffd700" stroke-width="0.7"/>
+  <text x="833" y="434" fill="#ffd700" font-size="9" text-anchor="middle">⚡ APC 3000 UPS</text>
+
+  <!-- 하프 Rack → 우측 선반 연결 -->
+  <line x1="913" y1="413" x2="923" y2="413" stroke="#484f58" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+
+  <!-- ③ 우측 선반 (4단) -->
+  <rect x="923" y="318" width="148" height="194" rx="4" fill="#100a1a" stroke="#d2a8ff" stroke-width="1" stroke-opacity="0.75"/>
+  <text x="997" y="330" fill="#d2a8ff" font-size="9" font-weight="600" text-anchor="middle">우측 선반 (4단)</text>
+  <line x1="923" y1="334" x2="1071" y2="334" stroke="#d2a8ff" stroke-width="0.4" stroke-opacity="0.3"/>
+  <rect x="929" y="338" width="136" height="18" rx="3" fill="#d2a8ff15" stroke="#d2a8ff" stroke-width="0.7"/>
+  <text x="997" y="350" fill="#d2a8ff" font-size="9" text-anchor="middle">QNAP NAS · 미니PC ×2</text>
+  <rect x="929" y="359" width="136" height="18" rx="3" fill="#f0883e12" stroke="#f0883e" stroke-width="0.7"/>
+  <text x="997" y="371" fill="#f0883e" font-size="9" text-anchor="middle">Cisco B220 INT · DMZ</text>
+  <rect x="929" y="380" width="136" height="18" rx="3" fill="#8b949e12" stroke="#8b949e" stroke-width="0.7"/>
+  <text x="997" y="392" fill="#8b949e" font-size="9" text-anchor="middle">모니터 · 삼성엔지PRD PC</text>
+  <rect x="929" y="401" width="65" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="961" y="413" fill="#ff7b72" font-size="8.5" text-anchor="middle">GitLab T340</text>
+  <rect x="998" y="401" width="67" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="1031" y="413" fill="#ff7b72" font-size="8.5" text-anchor="middle">Precision ×2</text>
+  <rect x="929" y="422" width="136" height="18" rx="3" fill="#ff7b7215" stroke="#ff7b72" stroke-width="0.7"/>
+  <text x="997" y="434" fill="#ff7b72" font-size="9" text-anchor="middle">AI-Srv 2495X GPU</text>
+
+  <!-- ── 4F ── -->
+  <line x1="500" y1="174" x2="500" y2="520" stroke="#3fb950" stroke-width="1.2"/>
+  <line x1="500" y1="520" x2="290" y2="557" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-green)"/>
+
+  <rect x="160" y="541" width="130" height="58" rx="5" fill="#111620" stroke="#30363d" stroke-width="1"/>
+  <text x="225" y="555" fill="#8b949e" font-size="11" font-weight="600" text-anchor="middle">4F TPS실</text>
+  <rect x="168" y="562" width="38" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="187" y="575" fill="#3fb950" font-size="9" text-anchor="middle">FS-148F</text>
+  <rect x="210" y="562" width="38" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="229" y="575" fill="#3fb950" font-size="9" text-anchor="middle">FS-124F</text>
+  <rect x="252" y="562" width="32" height="20" rx="3" fill="#3fb95015" stroke="#3fb950" stroke-width="0.8"/>
+  <text x="268" y="575" fill="#3fb950" font-size="8.5" text-anchor="middle">FS-108F</text>
+  <text x="268" y="584" fill="#3fb950" font-size="8.5" text-anchor="middle">PoE</text>
+
+  <rect x="50" y="541" width="100" height="58" rx="5" fill="#0d152018" stroke="#58a6ff" stroke-width="1"/>
+  <text x="100" y="555" fill="#79c0ff" font-size="11" font-weight="600" text-anchor="middle">4F 사무실</text>
+  <rect x="58" y="562" width="84" height="25" rx="3" fill="#58a6ff15" stroke="#58a6ff" stroke-width="0.8"/>
+  <text x="100" y="578" fill="#58a6ff" font-size="10" text-anchor="middle">📡 FAP231K ×3</text>
+
+  <line x1="160" y1="571" x2="142" y2="571" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+  <!-- Vertical backbone line label -->
+  <text x="504" y="350" fill="#3fb950" font-size="9" fill-opacity="0.7" transform="rotate(-90,504,350)">백본 · FS-424E FIBER</text>
+
+  <!-- ── 2F (TPS 렉 없음, 1F TPS 통합 관리) ── -->
+  <!-- 2F TPS 렉 없음 note box (dashed) -->
+  <rect x="160" y="631" width="140" height="62" rx="5" fill="#0d1117" stroke="#484f58" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="230" y="648" fill="#8b949e" font-size="11" font-weight="600" text-anchor="middle">2F TPS실</text>
+  <text x="230" y="661" fill="#484f58" font-size="9" text-anchor="middle">렉 없음 · 장비 없음</text>
+  <text x="230" y="674" fill="#484f58" font-size="9" text-anchor="middle">1F TPS에서 케이블 포설 관리</text>
+
+  <!-- 2F Office AP×3 -->
+  <rect x="50" y="631" width="100" height="62" rx="5" fill="#0d152018" stroke="#58a6ff" stroke-width="1"/>
+  <text x="100" y="648" fill="#e3b341" font-size="11" font-weight="600" text-anchor="middle">2F 사무실</text>
+  <rect x="58" y="653" width="84" height="30" rx="3" fill="#58a6ff15" stroke="#58a6ff" stroke-width="0.8"/>
+  <text x="100" y="666" fill="#58a6ff" font-size="10" text-anchor="middle">📡 FAP231K ×3</text>
+  <text x="100" y="677" fill="#8b949e" font-size="8.5" text-anchor="middle">FGMZ · FDWV · FHMR</text>
+
+  <!-- ── 1F (1F+2F 통합 TPS) ── -->
+  <!-- 1F backbone extension + branch -->
+  <line x1="500" y1="174" x2="500" y2="715" stroke="#3fb950" stroke-width="1.2"/>
+  <line x1="500" y1="715" x2="300" y2="762" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-green)"/>
+
+  <!-- 1F TPS box (4 switches: 2F용 + 1F용) -->
+  <rect x="155" y="719" width="145" height="93" rx="5" fill="#111620" stroke="#30363d" stroke-width="1"/>
+  <text x="228" y="733" fill="#85e89d" font-size="11" font-weight="600" text-anchor="middle">1F TPS실 · 통합 관리</text>
+  <text x="228" y="745" fill="#484f58" font-size="9" text-anchor="middle">2F TPS 렉 없음 · 4대 수용</text>
+  <!-- 2F용 스위치 (yellow border) -->
+  <rect x="163" y="749" width="58" height="20" rx="3" fill="#3fb95015" stroke="#e3b341" stroke-width="0.8"/>
+  <text x="192" y="762" fill="#e3b341" font-size="9" text-anchor="middle">FS-148F·2F</text>
+  <rect x="226" y="749" width="68" height="20" rx="3" fill="#3fb95015" stroke="#e3b341" stroke-width="0.8"/>
+  <text x="260" y="762" fill="#e3b341" font-size="9" text-anchor="middle">FS-108F-PoE·2F</text>
+  <!-- 1F용 스위치 (green border) -->
+  <rect x="163" y="773" width="58" height="20" rx="3" fill="#3fb95015" stroke="#85e89d" stroke-width="0.8"/>
+  <text x="192" y="786" fill="#85e89d" font-size="9" text-anchor="middle">FS-148F·1F</text>
+  <rect x="226" y="773" width="68" height="20" rx="3" fill="#3fb95015" stroke="#85e89d" stroke-width="0.8"/>
+  <text x="260" y="786" fill="#85e89d" font-size="9" text-anchor="middle">FS-108F-PoE·1F</text>
+
+  <!-- 1F Office AP×2 -->
+  <rect x="50" y="730" width="100" height="62" rx="5" fill="#0d152018" stroke="#58a6ff" stroke-width="1"/>
+  <text x="100" y="747" fill="#85e89d" font-size="11" font-weight="600" text-anchor="middle">1F 사무실</text>
+  <rect x="58" y="753" width="84" height="30" rx="3" fill="#58a6ff15" stroke="#58a6ff" stroke-width="0.8"/>
+  <text x="100" y="766" fill="#58a6ff" font-size="10" text-anchor="middle">📡 FAP231K ×2</text>
+  <text x="100" y="777" fill="#8b949e" font-size="8.5" text-anchor="middle">FHP7 · FDV7</text>
+
+  <!-- 1F TPS → 1F AP -->
+  <line x1="155" y1="762" x2="150" y2="762" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+  <!-- 1F TPS → 2F AP (케이블 포설: 1F TPS에서 2F까지 올림) -->
+  <line x1="228" y1="719" x2="100" y2="693" stroke="#58a6ff" stroke-width="1" stroke-dasharray="4,3" stroke-opacity="0.65" marker-end="url(#arr-blue)"/>
+  <text x="164" y="711" fill="#58a6ff" font-size="9" fill-opacity="0.65" text-anchor="middle">케이블 포설 ↑</text>
+
+</svg>
+</div>
+
+<div style="margin-top:16px; padding:12px 16px; background:#161b22; border:1px solid #30363d; border-radius:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8b949e; display:flex; gap:24px; flex-wrap:wrap;">
+  <span>총 UTM: <strong style="color:#ff7b72">2대</strong> (FG-120G)</span>
+  <span>총 스위치(Fortinet): <strong style="color:#3fb950">15대</strong></span>
+  <span>총 스위치(Cisco): <strong style="color:#f0883e">4대</strong></span>
+  <span>총 AP: <strong style="color:#58a6ff">16대</strong> (FAP231K)</span>
+  <span>서버: <strong style="color:#ff7b72">14+대</strong></span>
+  <span>INT 대역: <strong style="color:#58a6ff">172.18.100.x</strong></span>
+  <span>DMZ 대역: <strong style="color:#58a6ff">172.19.100.x</strong></span>
+</div>
+
+</body>
+</html>
